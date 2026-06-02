@@ -1,0 +1,861 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+    Builds a pentest notebook in OneNote with proper headings, tables, and checkboxes.
+
+.DESCRIPTION
+    Creates a fully structured OneNote notebook for a web app pentest engagement.
+    Uses the OneNote COM object — requires OneNote desktop to be installed and running.
+
+.PARAMETER NotebookName
+    Name for the new notebook. Default: "Pentest - <date>"
+
+.PARAMETER AppNames
+    Array of app/target names to create section groups for.
+    Example: -AppNames "CustomerPortal","AdminPanel","API"
+
+.PARAMETER NotebookPath
+    Where to save the notebook on disk.
+    Default: your Documents\OneNote Notebooks folder.
+
+.EXAMPLE
+    .\New-PentestNotebook.ps1 -NotebookName "Acme Corp - Web Assessment" -AppNames "CustomerPortal","AdminAPI"
+
+.EXAMPLE
+    .\New-PentestNotebook.ps1 -NotebookName "Internal - Q3 2025" -AppNames "ERP","HRPortal","DevOps"
+#>
+
+[CmdletBinding()]
+param(
+    [string]$NotebookName = "Pentest - $(Get-Date -Format 'yyyy-MM-dd')",
+    [string[]]$AppNames   = @("App 1"),
+    [string]$NotebookPath = [System.IO.Path]::Combine(
+        [Environment]::GetFolderPath("MyDocuments"),
+        "OneNote Notebooks"
+    )
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ONENOTE XML HELPERS
+# OneNote pages are written as XML via the UpdatePageContent API.
+# We build XML strings and push them in — this is the supported way to
+# create formatted content programmatically without the full COM object model.
+# ─────────────────────────────────────────────────────────────────────────────
+
+function Get-Timestamp { [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") }
+
+# Escape characters that are invalid in XML text content.
+# CDATA protects most things but OneNote's parser still rejects bare & in some
+# contexts, and we pass content through string interpolation before CDATA wrapping.
+function xe {
+    param([string]$Text)
+    return $Text `
+        -replace '&',  '&amp;'  `
+        -replace '<',  '&lt;'   `
+        -replace '>',  '&gt;'   `
+        -replace '"',  '&quot;' `
+        -replace "'",  '&apos;'
+}
+
+function New-PageXml {
+    param(
+        [string]$PageId,
+        [string]$Title,
+        [string]$BodyXml
+    )
+    $ts = Get-Timestamp
+    return @"
+<?xml version="1.0"?>
+<one:Page xmlns:one="http://schemas.microsoft.com/office/onenote/2013/onenote"
+          ID="$PageId" dateTime="$ts" lastModifiedTime="$ts">
+  <one:Title>
+    <one:OE><one:T>$(xe $Title)</one:T></one:OE>
+  </one:Title>
+  $BodyXml
+</one:Page>
+"@
+}
+
+# Heading 1 — bold, larger
+function h1 {
+    param([string]$Text)
+    $t = xe $Text
+    return "<one:OE style=`"font-size:16.0pt;font-weight:bold;color:#1F3864`"><one:T>$t</one:T></one:OE>"
+}
+
+# Heading 2 — bold, medium
+function h2 {
+    param([string]$Text)
+    $t = xe $Text
+    return "<one:OE style=`"font-size:12.0pt;font-weight:bold;color:#2E75B6`"><one:T>$t</one:T></one:OE>"
+}
+
+# Normal paragraph
+function p {
+    param([string]$Text = "")
+    $t = xe $Text
+    return "<one:OE><one:T>$t</one:T></one:OE>"
+}
+
+# Monospace paragraph (for payloads, tokens, etc.)
+function mono {
+    param([string]$Text = "")
+    $t = xe $Text
+    return "<one:OE style=`"font-family:Courier New;font-size:10.0pt`"><one:T>$t</one:T></one:OE>"
+}
+
+# Checkbox (OneNote To Do tag = tagIndex 3)
+function cb {
+    param([string]$Text)
+    $t = xe $Text
+    return "<one:OE><one:Tag index=`"0`" completed=`"false`" /><one:T>$t</one:T></one:OE>"
+}
+
+# Table row helper — takes array of cell strings
+function tr {
+    param([string[]]$Cells, [bool]$Header = $false)
+    $style = if ($Header) { " style=`"font-weight:bold;background-color:#D9E1F2`"" } else { "" }
+    $cellXml = ($Cells | ForEach-Object {
+        $t = xe $_
+        "<one:Cell><one:OEChildren><one:OE$style><one:T>$t</one:T></one:OE></one:OEChildren></one:Cell>"
+    }) -join ""
+    return "<one:Row>$cellXml</one:Row>"
+}
+
+# Full table — header row + data rows
+function table {
+    param([string[]]$Headers, [string[][]]$Rows)
+    $headerRow = tr -Cells $Headers -Header $true
+    $dataRows  = ($Rows | ForEach-Object { tr -Cells $_ }) -join ""
+    return "<one:Table bordersVisible=`"true`"><one:Columns>$(($Headers | ForEach-Object { '<one:Column />' }) -join '')</one:Columns>$headerRow$dataRows</one:Table>"
+}
+
+# Wrap content in an OEChildren block (the body container)
+function body {
+    param([string[]]$Elements)
+    $inner = $Elements -join "`n"
+    return "<one:Outline><one:OEChildren>$inner</one:OEChildren></one:Outline>"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE BUILDERS
+# Each function returns the XML body for one page.
+# ─────────────────────────────────────────────────────────────────────────────
+
+function Build-ScopeAndStack {
+    $emptyRow5col = @( @("","","","",""), @("","","","",""), @("","","","","") )
+    $emptyRow3col = @( @("","",""), @("","","") )
+    $emptyRow6col = @( @("","","","","",""), @("","","","","","") )
+
+    $b = body @(
+        h1 "Scope & Stack"
+        p  "Fill at kickoff. Rarely touched after that."
+        p  ""
+        h2 "Engagement"
+        p  "Client:"
+        p  "Engagement Type:    [ ] Web App   [ ] API   [ ] Internal   [ ] Red Team   [ ] Cloud   [ ] WiFi"
+        p  "Dates:   Start:                    End:"
+        p  "Tester:"
+        p  ""
+        h2 "In Scope"
+        table @("App / Target","URL / IP Range","Notes") $emptyRow3col
+        p  ""
+        h2 "Out of Scope"
+        p  ""
+        h2 "Creds / Access Provided"
+        table @("Account","Role","Notes") $emptyRow3col
+        p  ""
+        h2 "Tech Stack"
+        p  "Fill as discovered."
+        table @("App","Framework","Language","Auth","WAF / CDN","Cloud") $emptyRow6col
+        p  ""
+        h2 "Contacts"
+        table @("Name","Role","Contact") $emptyRow3col
+    )
+    return $b
+}
+
+function Build-Findings {
+    $summaryRows = @(
+        @("1","","","","","draft"),
+        @("2","","","","","draft"),
+        @("3","","","","","draft"),
+        @("4","","","","","draft"),
+        @("5","","","","","draft")
+    )
+
+    $b = body @(
+        h1 "Findings"
+        p  "Add a row the moment something is confirmed. One place, all apps."
+        p  "Severity: Crit / High / Med / Low / Info"
+        p  ""
+        h2 "Summary"
+        table @("#","Sev","App","Title","Vuln Class","Status") $summaryRows
+        p  ""
+        h2 "Finding Detail"
+        p  "Duplicate this block for each finding."
+        p  ""
+        h2 "Finding 1 —"
+        p  "App:"
+        p  "Severity:"
+        p  "Vuln Class:"
+        p  "Endpoint(s):"
+        p  "Confirmed:   Yes / No     Date:"
+        p  ""
+        p  "What it is:"
+        p  ""
+        p  "How you got there:"
+        p  ""
+        p  "Impact:"
+        p  ""
+        p  "Evidence:"
+        p  "────────────────────────────────────"
+        p  ""
+        h2 "Finding 2 —"
+        p  "App:"
+        p  "Severity:"
+        p  "Vuln Class:"
+        p  "Endpoint(s):"
+        p  "Confirmed:   Yes / No     Date:"
+        p  ""
+        p  "What it is:"
+        p  ""
+        p  "How you got there:"
+        p  ""
+        p  "Impact:"
+        p  ""
+        p  "Evidence:"
+    )
+    return $b
+}
+
+function Build-Surface {
+    param([string]$AppName)
+
+    $endpointRows = 1..8 | ForEach-Object { ,@("?","","","","","") }
+
+    $b = body @(
+        h1 "Surface — $AppName"
+        p  "Daily driver. Drop endpoints here as you find them. Tag vuln classes. Update status inline."
+        p  "Create a vuln class page only when you have real indicators worth tracking."
+        p  ""
+        h2 "Status Key"
+        p  "?  untested    >  active    v  confirmed (add to Findings)    -  nothing found    x  N/A"
+        p  ""
+        h2 "Vuln Class Tags"
+        p  "sqli   xss   ssti   ssrf   xxe   idor   lfi   auth   csrf   rce   open-redirect   other"
+        p  ""
+        h2 "Endpoint Map"
+        table @("Status","Method","Endpoint","Auth","Params of Interest","Vuln Classes") $endpointRows
+        p  ""
+        h2 "Interesting Headers / Stack Clues"
+        p  "Paste response headers, error messages, anything that reveals the stack."
+        p  ""
+        h2 "JS Files / Hidden Endpoints"
+        p  "Endpoints from JS analysis, robots.txt, content discovery."
+        p  ""
+        h2 "Session / Auth Notes"
+        p  "Token format, cookie flags, auth flow quirks — quick notes only."
+        p  ""
+        h2 "Daily Log"
+        p  "One entry per session."
+        p  ""
+        p  "Date:"
+        p  "Tested:"
+        p  "Found:"
+        p  "Next:"
+        p  "────────────────────────────────────"
+        p  "Date:"
+        p  "Tested:"
+        p  "Found:"
+        p  "Next:"
+        p  "────────────────────────────────────"
+        p  "Date:"
+        p  "Tested:"
+        p  "Found:"
+        p  "Next:"
+    )
+    return $b
+}
+
+function Build-SQLi {
+    param([string]$AppName)
+
+    $candidateRows = @( @("?","","","",""), @("?","","","",""), @("?","","","","") )
+
+    $b = body @(
+        h1 "SQLi — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Param(s)","Type Suspected") $candidateRows
+        p  "Types: error-based   blind-boolean   blind-time   union   OOB   second-order   NoSQL"
+        p  ""
+        h2 "What Tipped You Off"
+        p  "Stack trace, timing delta, different response on quote, boolean diff — paste raw."
+        p  ""
+        h2 "DB Fingerprint"
+        p  "Type:      MySQL / MSSQL / PostgreSQL / Oracle / SQLite / MongoDB / Unknown"
+        p  "Version:"
+        p  "Evidence:"
+        p  ""
+        h2 "Working Payloads"
+        p  "Endpoint:"
+        p  "Param:"
+        mono "Payload:"
+        p  "Result:"
+        p  "────────────────────────────────────"
+        p  "Endpoint:"
+        p  "Param:"
+        mono "Payload:"
+        p  "Result:"
+        p  ""
+        h2 "What You Can Reach"
+        cb "Schema / DB names"
+        cb "Table enumeration"
+        cb "Credential tables"
+        cb "File read"
+        cb "File write / webshell"
+        cb "OS command execution"
+        cb "Linked servers / lateral movement"
+        p  ""
+        h2 "Tooling"
+        cb "Manual (Burp Repeater)"
+        cb "sqlmap   Flags:"
+        cb "Other:"
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-XSS {
+    param([string]$AppName)
+
+    $candidateRows = @( @("?","","","","",""), @("?","","","","","") )
+
+    $b = body @(
+        h1 "XSS — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Param / Sink","Type","Context") $candidateRows
+        p  "Type: reflected   stored   DOM"
+        p  "Context: HTML body   HTML attr   JS string   JS block   URL   CSS   JSON response"
+        p  ""
+        h2 "What Tipped You Off"
+        p  "Input:"
+        p  "Output:"
+        p  ""
+        h2 "Filter / WAF Behavior"
+        p  "What's blocked, what slips through."
+        p  ""
+        h2 "Working Payloads"
+        p  "Context:"
+        mono "Payload:"
+        p  "Result:"
+        p  "────────────────────────────────────"
+        p  "Context:"
+        mono "Payload:"
+        p  "Result:"
+        p  ""
+        h2 "Execution Notes"
+        cb "document.domain confirmed"
+        cb "Cookies accessible (document.cookie)"
+        cb "HttpOnly on session cookie — theft not viable"
+        cb "Stored — roles that see the payload:"
+        p  ""
+        h2 "CSP"
+        mono "CSP Header:"
+        cb  "No CSP"
+        cb  "Bypassable — bypass path:"
+        cb  "Blocks exploitation"
+        p  ""
+        h2 "DOM XSS"
+        table @("Source","Sink") @( @("location.search","innerHTML"), @("location.hash","eval()"), @("","") )
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-SSTI {
+    param([string]$AppName)
+
+    $probeRows = @(
+        @('{{7*7}}', ""),
+        @('${7*7}',  ""),
+        @('#{7*7}',  ""),
+        @("{{7*'7'}}", ""),
+        @('<%= 7*7 %>', "")
+    )
+    $candidateRows = @( @("?","","","",""), @("?","","","","") )
+
+    $b = body @(
+        h1 "SSTI — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Param(s)","Engine Suspected") $candidateRows
+        p  ""
+        h2 "Engine Identification"
+        table @("Probe","Result") $probeRows
+        p  "Confirmed engine:"
+        p  "Evidence:"
+        p  ""
+        h2 "Working Payloads"
+        p  "Engine:"
+        mono "Payload:"
+        p  "Result:"
+        p  ""
+        h2 "RCE Reached"
+        cb "OS command execution confirmed"
+        p  "id / whoami output:"
+        cb "File read viable"
+        cb "Shell / beacon dropped"
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-SSRF {
+    param([string]$AppName)
+
+    $candidateRows = @( @("?","","","",""), @("?","","","","") )
+    $reachRows = @(
+        @("169.254.169.254","80","Cloud metadata",""),
+        @("","","","")
+    )
+
+    $b = body @(
+        h1 "SSRF — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Param(s)","Type") $candidateRows
+        p  "Type: full-response   blind   partial (error-based)"
+        p  ""
+        h2 "OOB Confirmation"
+        p  "Collaborator / interactsh payload:"
+        p  "Callback received:   Yes / No"
+        p  "Protocol:   HTTP / DNS"
+        p  "Source IP:"
+        p  ""
+        h2 "Internal Reach"
+        table @("Host / IP","Port","Service","Result") $reachRows
+        p  ""
+        h2 "Cloud Metadata"
+        cb "AWS IAM creds retrieved:"
+        cb "GCP metadata reachable"
+        cb "Azure metadata reachable"
+        p  ""
+        h2 "Protocols / Bypasses That Worked"
+        cb "file:///etc/passwd"
+        cb "dict://"
+        cb "gopher://"
+        cb "Decimal IP"
+        cb "IPv6"
+        cb "Open redirect chain"
+        cb "Other:"
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-IDOR {
+    param([string]$AppName)
+
+    $candidateRows = @( @("?","","","",""), @("?","","","","") )
+    $accountRows   = @( @("","standard",""), @("","standard",""), @("","admin","") )
+
+    $b = body @(
+        h1 "IDOR / Broken Access Control — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Object Ref / Param","AC Type") $candidateRows
+        p  "AC Type: IDOR-horizontal   IDOR-vertical   BOLA   BFLA   mass-assignment"
+        p  ""
+        h2 "Test Accounts"
+        table @("Account","Role","User ID") $accountRows
+        p  ""
+        h2 "Object Reference Pattern"
+        p  "Sequential int / GUID / username / hash — and where it's exposed."
+        p  ""
+        h2 "Confirmed Bypasses"
+        p  "Type:   Horizontal / Vertical / Mass assignment"
+        mono "Request:"
+        p  "Result:"
+        p  "────────────────────────────────────"
+        p  "Type:   Horizontal / Vertical / Mass assignment"
+        mono "Request:"
+        p  "Result:"
+        p  ""
+        h2 "Scope of Exposed Data"
+        cb "PII"
+        cb "Financial"
+        cb "Auth material"
+        cb "Files"
+        cb "Admin data"
+        p  ""
+        h2 "Impact"
+        p  "Blast radius — how many records, read vs. modify/delete."
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-LFI {
+    param([string]$AppName)
+
+    $candidateRows = @( @("?","","","",""), @("?","","","","") )
+    $traversalRows = @(
+        @("../../../../etc/passwd",""),
+        @("..%2F..%2F..%2Fetc%2Fpasswd",""),
+        @("....//....//etc/passwd",""),
+        @("%252e%252e%252fetc%252fpasswd","")
+    )
+    $fileReadRows = @(
+        @("/etc/passwd",""),
+        @("/proc/self/environ",""),
+        @("App config:",""),
+        @("Log file:","")
+    )
+
+    $b = body @(
+        h1 "Path Traversal / LFI — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Param(s)","Type") $candidateRows
+        p  "Type: path-traversal   LFI   RFI   file-download   zip-slip"
+        p  ""
+        h2 "Traversal Behavior"
+        table @("Probe","Result") $traversalRows
+        p  "Base dir (inferred):"
+        p  "Depth needed:"
+        p  "Encoding bypass required:"
+        p  ""
+        h2 "Confirmed File Reads"
+        table @("Path","Output") $fileReadRows
+        p  ""
+        h2 "RCE Path"
+        cb "Log poisoning — log location:   injection point:   execution confirmed:"
+        cb "PHP session include"
+        cb "Upload + include"
+        cb "PHP filter chain"
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-Auth {
+    param([string]$AppName)
+
+    $candidateRows = @(
+        @("?","POST","/login","Credential submit","Brute / lockout"),
+        @("?","POST","/forgot-password","Password reset","Reset poisoning"),
+        @("?","","","","")
+    )
+
+    $b = body @(
+        h1 "Auth / JWT / OAuth — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Mechanism"
+        p  "Type:   Session cookie / JWT / OAuth 2.0 / API key / Basic / Custom"
+        p  "MFA:    Yes / No / Partial"
+        p  "SSO:    Yes / No     Provider:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Surface","Issue Suspected") $candidateRows
+        p  ""
+        h2 "JWT"
+        p  "Token (header.payload only):"
+        mono ""
+        p  "Header:"
+        p  "Payload:"
+        p  ""
+        cb "alg:none — Result:"
+        cb "Weak secret cracked — Result:"
+        cb "RS256 to HS256 confusion — Result:"
+        cb "kid injection — Result:"
+        cb "jwk/jku/x5u injection — Result:"
+        cb "Expired token accepted — Result:"
+        cb "Not invalidated on logout — Result:"
+        p  ""
+        h2 "OAuth"
+        p  "Flow:   authorization_code / implicit / client_credentials"
+        p  ""
+        cb "redirect_uri manipulation — Result:"
+        cb "state param absent / not validated — Result:"
+        cb "Auth code reuse — Result:"
+        cb "Token in Referer — Result:"
+        cb "Account pre-hijacking — Result:"
+        p  ""
+        h2 "Password Reset"
+        cb "Host header poisoning — Result:"
+        cb "Token entropy sufficient"
+        cb "Token expires / single-use"
+        cb "Username enumeration possible"
+        cb "Rate limiting absent"
+        p  ""
+        h2 "Session / Brute"
+        p  "Cookie flags:"
+        cb "HttpOnly"
+        cb "Secure"
+        cb "SameSite"
+        p  ""
+        cb "Lockout present"
+        cb "Lockout bypassable — Method:"
+        cb "MFA bypassable — Method:"
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+function Build-XXE {
+    param([string]$AppName)
+
+    $candidateRows = @( @("?","","","",""), @("?","","","","") )
+    $fileReadRows  = @( @("/etc/passwd",""), @("Other:","") )
+
+    $b = body @(
+        h1 "XXE — $AppName"
+        p  "App:   $AppName"
+        p  "Created because:"
+        p  ""
+        h2 "Candidates"
+        table @("Status","Method","Endpoint","Content-Type","Type") $candidateRows
+        p  "Type: in-band   blind-OOB   XInclude   SVG upload   XLSX/DOCX upload"
+        p  ""
+        h2 "What Tipped You Off"
+        p  "XML accepted, verbose parser errors, file upload processing XML internally."
+        p  ""
+        h2 "Exploitation"
+        p  "In-band file read:"
+        mono '<?xml version="1.0"?>'
+        mono '<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
+        mono '<root><data>&xxe;</data></root>'
+        p  "Result:"
+        p  ""
+        p  "SSRF via XXE:"
+        p  "Target URL:"
+        p  "Result:"
+        p  ""
+        p  "Blind OOB:"
+        p  "Collaborator payload:"
+        p  "Callback received:   Yes / No"
+        p  ""
+        p  "XInclude (no DOCTYPE control):"
+        p  "Result:"
+        p  ""
+        h2 "Confirmed File Reads"
+        table @("Path","Output") $fileReadRows
+        p  ""
+        h2 "Impact"
+        p  ""
+        p  "-> Confirmed? Add to Findings page."
+    )
+    return $b
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ONENOTE COM WIRING
+# ─────────────────────────────────────────────────────────────────────────────
+
+function Get-OneNoteApp {
+    Write-Host "[*] Connecting to OneNote..." -ForegroundColor Cyan
+    try {
+        $app = New-Object -ComObject OneNote.Application
+        Write-Host "[+] Connected to OneNote." -ForegroundColor Green
+        return $app
+    } catch {
+        Write-Error "Could not connect to OneNote COM object. Make sure OneNote desktop is installed."
+        exit 1
+    }
+}
+
+function Get-OneNoteXml {
+    param($App)
+    [xml]$xml = ""
+    $App.GetHierarchy("", [Microsoft.Office.Interop.OneNote.HierarchyScope]::hsNotebooks, [ref]$xml)
+    return $xml
+}
+
+function New-Notebook {
+    param($App, [string]$Name, [string]$Path)
+    $fullPath = [System.IO.Path]::Combine($Path, $Name)
+    if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path | Out-Null }
+    Write-Host "[*] Creating notebook: $Name" -ForegroundColor Cyan
+    $nbId = ""
+    $App.OpenHierarchy($fullPath, "", [ref]$nbId, [Microsoft.Office.Interop.OneNote.CreateFileType]::cftNotebook)
+    return $nbId
+}
+
+function New-Section {
+    param($App, [string]$ParentId, [string]$Name)
+    $sectionId = ""
+    $App.GetHierarchy("", [Microsoft.Office.Interop.OneNote.HierarchyScope]::hsNotebooks, [ref]$xml)
+    $App.CreateNewPage($ParentId, [ref]$sectionId, [Microsoft.Office.Interop.OneNote.NewPageStyle]::npsBlankPageWithTitle)
+    # Actually create a section properly:
+    $sectionId = ""
+    $App.OpenHierarchy($Name, $ParentId, [ref]$sectionId, [Microsoft.Office.Interop.OneNote.CreateFileType]::cftSection)
+    return $sectionId
+}
+
+function New-SectionGroup {
+    param($App, [string]$ParentId, [string]$Name)
+    $sgId = ""
+    $App.OpenHierarchy($Name, $ParentId, [ref]$sgId, [Microsoft.Office.Interop.OneNote.CreateFileType]::cftFolder)
+    return $sgId
+}
+
+function New-Page {
+    param($App, [string]$SectionId, [string]$Title)
+    $pageId = ""
+    $App.CreateNewPage($SectionId, [ref]$pageId, [Microsoft.Office.Interop.OneNote.NewPageStyle]::npsBlankPageWithTitle)
+    return $pageId
+}
+
+function Set-PageContent {
+    param($App, [string]$PageId, [string]$Title, [string]$BodyXml)
+    $xml = New-PageXml -PageId $PageId -Title $Title -BodyXml $BodyXml
+    $App.UpdatePageContent($xml, [DateTime]::MinValue,
+        [Microsoft.Office.Interop.OneNote.XMLSchema]::xs2013, $false)
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MAIN
+# ─────────────────────────────────────────────────────────────────────────────
+
+Write-Host ""
+Write-Host "======================================================" -ForegroundColor Yellow
+Write-Host "  Pentest Notebook Builder" -ForegroundColor Yellow
+Write-Host "======================================================" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  Notebook : $NotebookName"
+Write-Host "  Apps     : $($AppNames -join ', ')"
+Write-Host "  Path     : $NotebookPath"
+Write-Host ""
+
+$onenote = Get-OneNoteApp
+
+# Load interop type if not present (OneNote ships with this)
+try {
+    Add-Type -Path "$env:ProgramFiles\Microsoft Office\root\vfs\ProgramFilesCommonX86\Microsoft Shared\OFFICE16\pia\Microsoft.Office.Interop.OneNote.dll" -ErrorAction SilentlyContinue
+} catch {}
+try {
+    Add-Type -Path "$env:ProgramFiles (x86)\Microsoft Office\root\vfs\ProgramFilesCommonX86\Microsoft Shared\OFFICE16\pia\Microsoft.Office.Interop.OneNote.dll" -ErrorAction SilentlyContinue
+} catch {}
+
+# Create notebook
+$nbId = New-Notebook -App $onenote -Name $NotebookName -Path $NotebookPath
+Start-Sleep -Milliseconds 500
+
+# Create _Overview section
+Write-Host "[*] Creating _Overview section..." -ForegroundColor Cyan
+$overviewId = ""
+$onenote.OpenHierarchy("_Overview", $nbId, [ref]$overviewId,
+    [Microsoft.Office.Interop.OneNote.CreateFileType]::cftSection)
+Start-Sleep -Milliseconds 300
+
+# Scope & Stack page
+Write-Host "    [+] Scope & Stack" -ForegroundColor Green
+$pageId = New-Page -App $onenote -SectionId $overviewId -Title "Scope & Stack"
+Set-PageContent -App $onenote -PageId $pageId -Title "Scope & Stack" -BodyXml (Build-ScopeAndStack)
+Start-Sleep -Milliseconds 200
+
+# Findings page
+Write-Host "    [+] Findings" -ForegroundColor Green
+$pageId = New-Page -App $onenote -SectionId $overviewId -Title "Findings"
+Set-PageContent -App $onenote -PageId $pageId -Title "Findings" -BodyXml (Build-Findings)
+Start-Sleep -Milliseconds 200
+
+# Create a section group + pages for each app
+foreach ($appName in $AppNames) {
+    Write-Host "[*] Creating section group: $appName" -ForegroundColor Cyan
+    $sgId = New-SectionGroup -App $onenote -ParentId $nbId -Name $appName
+    Start-Sleep -Milliseconds 300
+
+    # Surface section inside the group
+    $surfaceSectionId = ""
+    $onenote.OpenHierarchy("Surface", $sgId, [ref]$surfaceSectionId,
+        [Microsoft.Office.Interop.OneNote.CreateFileType]::cftSection)
+    Start-Sleep -Milliseconds 200
+
+    Write-Host "    [+] Surface" -ForegroundColor Green
+    $pageId = New-Page -App $onenote -SectionId $surfaceSectionId -Title "Surface — $appName"
+    Set-PageContent -App $onenote -PageId $pageId -Title "Surface — $appName" -BodyXml (Build-Surface -AppName $appName)
+    Start-Sleep -Milliseconds 200
+
+    # Vuln class sections — one section per class, blank until needed
+    # We create them but leave a single placeholder page so they exist in the structure
+    $vulnClasses = @(
+        @{ Name = "SQLi";  Builder = { Build-SQLi  -AppName $appName } },
+        @{ Name = "XSS";   Builder = { Build-XSS   -AppName $appName } },
+        @{ Name = "SSTI";  Builder = { Build-SSTI  -AppName $appName } },
+        @{ Name = "SSRF";  Builder = { Build-SSRF  -AppName $appName } },
+        @{ Name = "XXE";   Builder = { Build-XXE   -AppName $appName } },
+        @{ Name = "IDOR";  Builder = { Build-IDOR  -AppName $appName } },
+        @{ Name = "LFI";   Builder = { Build-LFI   -AppName $appName } },
+        @{ Name = "Auth";  Builder = { Build-Auth  -AppName $appName } }
+    )
+
+    foreach ($vc in $vulnClasses) {
+        Write-Host "    [+] $($vc.Name)" -ForegroundColor Green
+        $vcSectionId = ""
+        $onenote.OpenHierarchy($vc.Name, $sgId, [ref]$vcSectionId,
+            [Microsoft.Office.Interop.OneNote.CreateFileType]::cftSection)
+        Start-Sleep -Milliseconds 200
+
+        $pageId = New-Page -App $onenote -SectionId $vcSectionId -Title "$($vc.Name) — $appName"
+        $bodyXml = & $vc.Builder
+        Set-PageContent -App $onenote -PageId $pageId -Title "$($vc.Name) — $appName" -BodyXml $bodyXml
+        Start-Sleep -Milliseconds 200
+    }
+}
+
+Write-Host ""
+Write-Host "======================================================" -ForegroundColor Green
+Write-Host "  Done. Notebook ready in OneNote." -ForegroundColor Green
+Write-Host "======================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Structure created:" -ForegroundColor Yellow
+Write-Host "  $NotebookName"
+Write-Host "  ├── _Overview"
+Write-Host "  │   ├── Scope & Stack"
+Write-Host "  │   └── Findings"
+foreach ($a in $AppNames) {
+    Write-Host "  ├── $a"
+    Write-Host "  │   ├── Surface"
+    Write-Host "  │   ├── SQLi / XSS / SSTI / SSRF / XXE / IDOR / LFI / Auth"
+}
+Write-Host ""
