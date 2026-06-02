@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Creates a fully structured OneNote notebook for a web app pentest engagement.
-    Uses the OneNote COM object — requires OneNote desktop to be installed and running.
+    Uses the OneNote COM object - requires OneNote desktop to be installed and running.
 
 .PARAMETER NotebookName
     Name for the new notebook. Default: "Pentest - <date>"
@@ -38,12 +38,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # ONENOTE XML HELPERS
 # OneNote pages are written as XML via the UpdatePageContent API.
-# We build XML strings and push them in — this is the supported way to
+# We build XML strings and push them in - this is the supported way to
 # create formatted content programmatically without the full COM object model.
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
 function Get-Timestamp { [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") }
 
@@ -79,14 +79,14 @@ function New-PageXml {
 "@
 }
 
-# Heading 1 — bold, larger
+# Heading 1 - bold, larger
 function h1 {
     param([string]$Text)
     $t = xe $Text
     return "<one:OE style=`"font-size:16.0pt;font-weight:bold;color:#1F3864`"><one:T>$t</one:T></one:OE>"
 }
 
-# Heading 2 — bold, medium
+# Heading 2 - bold, medium
 function h2 {
     param([string]$Text)
     $t = xe $Text
@@ -114,7 +114,7 @@ function cb {
     return "<one:OE><one:Tag index=`"0`" completed=`"false`" /><one:T>$t</one:T></one:OE>"
 }
 
-# Table row helper — takes array of cell strings
+# Table row helper - takes array of cell strings
 function tr {
     param([string[]]$Cells, [bool]$Header = $false)
     $style = if ($Header) { " style=`"font-weight:bold;background-color:#D9E1F2`"" } else { "" }
@@ -125,7 +125,7 @@ function tr {
     return "<one:Row>$cellXml</one:Row>"
 }
 
-# Full table — header row + data rows
+# Full table - header row + data rows
 function table {
     param([string[]]$Headers, [string[][]]$Rows)
     $headerRow = tr -Cells $Headers -Header $true
@@ -140,10 +140,10 @@ function body {
     return "<one:Outline><one:OEChildren>$inner</one:OEChildren></one:Outline>"
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # PAGE BUILDERS
 # Each function returns the XML body for one page.
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
 function Build-ScopeAndStack {
     $emptyRow5col = @( @("","","","",""), @("","","","",""), @("","","","","") )
@@ -198,7 +198,7 @@ function Build-Findings {
         h2 "Finding Detail"
         p  "Duplicate this block for each finding."
         p  ""
-        h2 "Finding 1 —"
+        h2 "Finding 1 -"
         p  "App:"
         p  "Severity:"
         p  "Vuln Class:"
@@ -212,9 +212,9 @@ function Build-Findings {
         p  "Impact:"
         p  ""
         p  "Evidence:"
-        p  "────────────────────────────────────"
+        p  "------------------------------------"
         p  ""
-        h2 "Finding 2 —"
+        h2 "Finding 2 -"
         p  "App:"
         p  "Severity:"
         p  "Vuln Class:"
@@ -238,7 +238,7 @@ function Build-Surface {
     $endpointRows = 1..8 | ForEach-Object { ,@("?","","","","","") }
 
     $b = body @(
-        h1 "Surface — $AppName"
+        h1 "Surface - $AppName"
         p  "Daily driver. Drop endpoints here as you find them. Tag vuln classes. Update status inline."
         p  "Create a vuln class page only when you have real indicators worth tracking."
         p  ""
@@ -258,7 +258,7 @@ function Build-Surface {
         p  "Endpoints from JS analysis, robots.txt, content discovery."
         p  ""
         h2 "Session / Auth Notes"
-        p  "Token format, cookie flags, auth flow quirks — quick notes only."
+        p  "Token format, cookie flags, auth flow quirks - quick notes only."
         p  ""
         h2 "Daily Log"
         p  "One entry per session."
@@ -267,12 +267,12 @@ function Build-Surface {
         p  "Tested:"
         p  "Found:"
         p  "Next:"
-        p  "────────────────────────────────────"
+        p  "------------------------------------"
         p  "Date:"
         p  "Tested:"
         p  "Found:"
         p  "Next:"
-        p  "────────────────────────────────────"
+        p  "------------------------------------"
         p  "Date:"
         p  "Tested:"
         p  "Found:"
@@ -287,7 +287,7 @@ function Build-SQLi {
     $candidateRows = @( @("?","","","",""), @("?","","","",""), @("?","","","","") )
 
     $b = body @(
-        h1 "SQLi — $AppName"
+        h1 "SQLi - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -296,7 +296,7 @@ function Build-SQLi {
         p  "Types: error-based   blind-boolean   blind-time   union   OOB   second-order   NoSQL"
         p  ""
         h2 "What Tipped You Off"
-        p  "Stack trace, timing delta, different response on quote, boolean diff — paste raw."
+        p  "Stack trace, timing delta, different response on quote, boolean diff - paste raw."
         p  ""
         h2 "DB Fingerprint"
         p  "Type:      MySQL / MSSQL / PostgreSQL / Oracle / SQLite / MongoDB / Unknown"
@@ -308,7 +308,7 @@ function Build-SQLi {
         p  "Param:"
         mono "Payload:"
         p  "Result:"
-        p  "────────────────────────────────────"
+        p  "------------------------------------"
         p  "Endpoint:"
         p  "Param:"
         mono "Payload:"
@@ -341,7 +341,7 @@ function Build-XSS {
     $candidateRows = @( @("?","","","","",""), @("?","","","","","") )
 
     $b = body @(
-        h1 "XSS — $AppName"
+        h1 "XSS - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -361,7 +361,7 @@ function Build-XSS {
         p  "Context:"
         mono "Payload:"
         p  "Result:"
-        p  "────────────────────────────────────"
+        p  "------------------------------------"
         p  "Context:"
         mono "Payload:"
         p  "Result:"
@@ -369,13 +369,13 @@ function Build-XSS {
         h2 "Execution Notes"
         cb "document.domain confirmed"
         cb "Cookies accessible (document.cookie)"
-        cb "HttpOnly on session cookie — theft not viable"
-        cb "Stored — roles that see the payload:"
+        cb "HttpOnly on session cookie - theft not viable"
+        cb "Stored - roles that see the payload:"
         p  ""
         h2 "CSP"
         mono "CSP Header:"
         cb  "No CSP"
-        cb  "Bypassable — bypass path:"
+        cb  "Bypassable - bypass path:"
         cb  "Blocks exploitation"
         p  ""
         h2 "DOM XSS"
@@ -401,7 +401,7 @@ function Build-SSTI {
     $candidateRows = @( @("?","","","",""), @("?","","","","") )
 
     $b = body @(
-        h1 "SSTI — $AppName"
+        h1 "SSTI - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -441,7 +441,7 @@ function Build-SSRF {
     )
 
     $b = body @(
-        h1 "SSRF — $AppName"
+        h1 "SSRF - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -486,7 +486,7 @@ function Build-IDOR {
     $accountRows   = @( @("","standard",""), @("","standard",""), @("","admin","") )
 
     $b = body @(
-        h1 "IDOR / Broken Access Control — $AppName"
+        h1 "IDOR / Broken Access Control - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -498,13 +498,13 @@ function Build-IDOR {
         table @("Account","Role","User ID") $accountRows
         p  ""
         h2 "Object Reference Pattern"
-        p  "Sequential int / GUID / username / hash — and where it's exposed."
+        p  "Sequential int / GUID / username / hash - and where it's exposed."
         p  ""
         h2 "Confirmed Bypasses"
         p  "Type:   Horizontal / Vertical / Mass assignment"
         mono "Request:"
         p  "Result:"
-        p  "────────────────────────────────────"
+        p  "------------------------------------"
         p  "Type:   Horizontal / Vertical / Mass assignment"
         mono "Request:"
         p  "Result:"
@@ -517,7 +517,7 @@ function Build-IDOR {
         cb "Admin data"
         p  ""
         h2 "Impact"
-        p  "Blast radius — how many records, read vs. modify/delete."
+        p  "Blast radius - how many records, read vs. modify/delete."
         p  ""
         p  "-> Confirmed? Add to Findings page."
     )
@@ -542,7 +542,7 @@ function Build-LFI {
     )
 
     $b = body @(
-        h1 "Path Traversal / LFI — $AppName"
+        h1 "Path Traversal / LFI - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -560,7 +560,7 @@ function Build-LFI {
         table @("Path","Output") $fileReadRows
         p  ""
         h2 "RCE Path"
-        cb "Log poisoning — log location:   injection point:   execution confirmed:"
+        cb "Log poisoning - log location:   injection point:   execution confirmed:"
         cb "PHP session include"
         cb "Upload + include"
         cb "PHP filter chain"
@@ -582,7 +582,7 @@ function Build-Auth {
     )
 
     $b = body @(
-        h1 "Auth / JWT / OAuth — $AppName"
+        h1 "Auth / JWT / OAuth - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -600,25 +600,25 @@ function Build-Auth {
         p  "Header:"
         p  "Payload:"
         p  ""
-        cb "alg:none — Result:"
-        cb "Weak secret cracked — Result:"
-        cb "RS256 to HS256 confusion — Result:"
-        cb "kid injection — Result:"
-        cb "jwk/jku/x5u injection — Result:"
-        cb "Expired token accepted — Result:"
-        cb "Not invalidated on logout — Result:"
+        cb "alg:none - Result:"
+        cb "Weak secret cracked - Result:"
+        cb "RS256 to HS256 confusion - Result:"
+        cb "kid injection - Result:"
+        cb "jwk/jku/x5u injection - Result:"
+        cb "Expired token accepted - Result:"
+        cb "Not invalidated on logout - Result:"
         p  ""
         h2 "OAuth"
         p  "Flow:   authorization_code / implicit / client_credentials"
         p  ""
-        cb "redirect_uri manipulation — Result:"
-        cb "state param absent / not validated — Result:"
-        cb "Auth code reuse — Result:"
-        cb "Token in Referer — Result:"
-        cb "Account pre-hijacking — Result:"
+        cb "redirect_uri manipulation - Result:"
+        cb "state param absent / not validated - Result:"
+        cb "Auth code reuse - Result:"
+        cb "Token in Referer - Result:"
+        cb "Account pre-hijacking - Result:"
         p  ""
         h2 "Password Reset"
-        cb "Host header poisoning — Result:"
+        cb "Host header poisoning - Result:"
         cb "Token entropy sufficient"
         cb "Token expires / single-use"
         cb "Username enumeration possible"
@@ -631,8 +631,8 @@ function Build-Auth {
         cb "SameSite"
         p  ""
         cb "Lockout present"
-        cb "Lockout bypassable — Method:"
-        cb "MFA bypassable — Method:"
+        cb "Lockout bypassable - Method:"
+        cb "MFA bypassable - Method:"
         p  ""
         h2 "Impact"
         p  ""
@@ -648,7 +648,7 @@ function Build-XXE {
     $fileReadRows  = @( @("/etc/passwd",""), @("Other:","") )
 
     $b = body @(
-        h1 "XXE — $AppName"
+        h1 "XXE - $AppName"
         p  "App:   $AppName"
         p  "Created because:"
         p  ""
@@ -687,9 +687,9 @@ function Build-XXE {
     return $b
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # ONENOTE COM WIRING
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
 function Get-OneNoteApp {
     Write-Host "[*] Connecting to OneNote..." -ForegroundColor Cyan
@@ -752,9 +752,9 @@ function Set-PageContent {
         [Microsoft.Office.Interop.OneNote.XMLSchema]::xs2013, $false)
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # MAIN
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Yellow
@@ -812,11 +812,11 @@ foreach ($appName in $AppNames) {
     Start-Sleep -Milliseconds 200
 
     Write-Host "    [+] Surface" -ForegroundColor Green
-    $pageId = New-Page -App $onenote -SectionId $surfaceSectionId -Title "Surface — $appName"
-    Set-PageContent -App $onenote -PageId $pageId -Title "Surface — $appName" -BodyXml (Build-Surface -AppName $appName)
+    $pageId = New-Page -App $onenote -SectionId $surfaceSectionId -Title "Surface - $appName"
+    Set-PageContent -App $onenote -PageId $pageId -Title "Surface - $appName" -BodyXml (Build-Surface -AppName $appName)
     Start-Sleep -Milliseconds 200
 
-    # Vuln class sections — one section per class, blank until needed
+    # Vuln class sections - one section per class, blank until needed
     # We create them but leave a single placeholder page so they exist in the structure
     $vulnClasses = @(
         @{ Name = "SQLi";  Builder = { Build-SQLi  -AppName $appName } },
@@ -836,9 +836,9 @@ foreach ($appName in $AppNames) {
             [Microsoft.Office.Interop.OneNote.CreateFileType]::cftSection)
         Start-Sleep -Milliseconds 200
 
-        $pageId = New-Page -App $onenote -SectionId $vcSectionId -Title "$($vc.Name) — $appName"
+        $pageId = New-Page -App $onenote -SectionId $vcSectionId -Title "$($vc.Name) - $appName"
         $bodyXml = & $vc.Builder
-        Set-PageContent -App $onenote -PageId $pageId -Title "$($vc.Name) — $appName" -BodyXml $bodyXml
+        Set-PageContent -App $onenote -PageId $pageId -Title "$($vc.Name) - $appName" -BodyXml $bodyXml
         Start-Sleep -Milliseconds 200
     }
 }
@@ -850,12 +850,12 @@ Write-Host "======================================================" -ForegroundC
 Write-Host ""
 Write-Host "Structure created:" -ForegroundColor Yellow
 Write-Host "  $NotebookName"
-Write-Host "  ├── _Overview"
-Write-Host "  │   ├── Scope & Stack"
-Write-Host "  │   └── Findings"
+Write-Host "  +-- _Overview"
+Write-Host "  |   +-- Scope & Stack"
+Write-Host "  |   +-- Findings"
 foreach ($a in $AppNames) {
-    Write-Host "  ├── $a"
-    Write-Host "  │   ├── Surface"
-    Write-Host "  │   ├── SQLi / XSS / SSTI / SSRF / XXE / IDOR / LFI / Auth"
+    Write-Host "  +-- $a"
+    Write-Host "  |   +-- Surface"
+    Write-Host "  |   +-- SQLi / XSS / SSTI / SSRF / XXE / IDOR / LFI / Auth"
 }
 Write-Host ""
