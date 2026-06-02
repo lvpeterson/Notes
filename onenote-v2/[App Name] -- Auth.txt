@@ -1,0 +1,71 @@
+════════════════════════════════════════════════════════════
+  AUTH / JWT / OAUTH
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+MECHANISM
+───────────────────────────────────
+  Type:     [ ] Session cookie   [ ] JWT   [ ] OAuth 2.0   [ ] API key   [ ] Basic   [ ] Custom
+  MFA:      Yes / No / Partial
+  SSO:      Yes / No     Provider:
+
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Surface                Issue Suspected
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────────────────────
+  ?        POST     /login                                  Credential submit      Brute / lockout
+  ?        POST     /forgot-password                        Password reset         Reset poisoning
+  ?                                                                                
+
+
+JWT
+───────────────────────────────────
+  Token (header.payload only):
+
+  Header:                         Payload:
+
+  Attacks:
+    [ ] alg:none                                  Result:
+    [ ] Weak secret cracked                       Result:
+    [ ] RS256→HS256 confusion                     Result:
+    [ ] kid injection                             Result:
+    [ ] jwk/jku/x5u injection                    Result:
+    [ ] Expired token accepted                    Result:
+    [ ] Not invalidated on logout                 Result:
+
+
+OAUTH
+───────────────────────────────────
+  Flow:     [ ] authorization_code   [ ] implicit   [ ] client_credentials
+
+  Attacks:
+    [ ] redirect_uri manipulation                 Result:
+    [ ] state param absent / not validated        Result:
+    [ ] Auth code reuse                           Result:
+    [ ] Token in Referer                          Result:
+    [ ] Account pre-hijacking                     Result:
+
+
+PASSWORD RESET
+───────────────────────────────────
+  [ ] Host header poisoning tested                Result:
+  [ ] Token entropy sufficient
+  [ ] Token expires / single-use
+  [ ] Username enumeration possible
+  [ ] Rate limiting absent
+
+
+SESSION / BRUTE
+───────────────────────────────────
+  Cookie flags:   [ ] HttpOnly   [ ] Secure   [ ] SameSite
+  [ ] Lockout present   [ ] Lockout bypassable   Method:
+  [ ] MFA bypassable    Method:
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.

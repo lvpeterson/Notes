@@ -1,0 +1,62 @@
+════════════════════════════════════════════════════════════
+  FINDINGS
+  Add a row the moment something is confirmed. One place,
+  all apps. Sort by severity when writing the report.
+════════════════════════════════════════════════════════════
+
+SEVERITY KEY:   [C] Critical   [H] High   [M] Medium   [L] Low   [I] Info
+
+
+  #    Sev   App             Title                                    Vuln Class          Status
+  ───  ────  ──────────────  ───────────────────────────────────────  ──────────────────  ──────────────
+  1.   [ ]   ____________    ___________________________________      ______________      [ ] Draft
+  2.   [ ]   ____________    ___________________________________      ______________      [ ] Draft
+  3.   [ ]   ____________    ___________________________________      ______________      [ ] Draft
+  4.   [ ]   ____________    ___________________________________      ______________      [ ] Draft
+  5.   [ ]   ____________    ___________________________________      ______________      [ ] Draft
+
+
+────────────────────────────────────────────────────────────
+  FINDING DETAIL
+  One block per finding. Copy the block as needed.
+────────────────────────────────────────────────────────────
+
+  #:
+  Title:
+  App:
+  Severity:        [ ] Critical   [ ] High   [ ] Medium   [ ] Low   [ ] Info
+  Vuln Class:
+  Endpoint(s):
+  Confirmed:       Yes / No       Date:
+
+  What it is:
+  (One sentence — what's the bug)
+
+  How you got there:
+  (The key request/payload that proved it — enough to reproduce)
+
+  Impact:
+  (What does an attacker actually get)
+
+  Evidence:
+  (Burp screenshot ref, response snippet, collaborator callback, etc.)
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+  #:
+  Title:
+  App:
+  Severity:        [ ] Critical   [ ] High   [ ] Medium   [ ] Low   [ ] Info
+  Vuln Class:
+  Endpoint(s):
+  Confirmed:       Yes / No       Date:
+
+  What it is:
+
+  How you got there:
+
+  Impact:
+
+  Evidence:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄

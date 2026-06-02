@@ -1,0 +1,65 @@
+════════════════════════════════════════════════════════════
+  XSS
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Param / Sink           Type           Context
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ────────────   ──────────────────
+  ?                                                                                 
+  ?                                                                                 
+
+  Type: reflected · stored · DOM
+  Context: HTML body · HTML attr · JS string · JS block · URL · CSS · JSON response
+
+
+WHAT TIPPED YOU OFF
+───────────────────────────────────
+  (Input reflected where? Raw chars surviving? Partial encoding?)
+
+  Input:
+  Output:
+
+
+FILTER / WAF BEHAVIOR
+───────────────────────────────────
+  (What's blocked, what slips through)
+
+
+WORKING PAYLOADS
+───────────────────────────────────
+  Context:
+  Payload:
+  Result:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+  Context:
+  Payload:
+  Result:
+
+
+EXECUTION NOTES
+───────────────────────────────────
+  [ ] document.domain confirmed
+  [ ] Cookies accessible
+  [ ] HttpOnly on session cookie — theft not viable
+  [ ] Stored — roles that see the payload:
+
+  CSP header (paste if present):
+  [ ] No CSP     [ ] Bypassable     [ ] Blocks exploitation
+  Bypass path (if applicable):
+
+
+DOM XSS (if applicable)
+───────────────────────────────────
+  Source:                         Sink:
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.

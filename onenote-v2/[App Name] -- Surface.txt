@@ -1,0 +1,80 @@
+════════════════════════════════════════════════════════════
+  SURFACE MAP
+  App:
+  ────────────────────────────────────────────────────────
+  This is your daily driver. Drop endpoints here as you
+  find them. Tag vuln classes. Update status inline.
+  Create a vuln class page only when you have real
+  indicators worth tracking.
+════════════════════════════════════════════════════════════
+
+VULN CLASS TAGS:
+  sqli  xss  ssti  ssrf  xxe  idor  lfi  auth  csrf  rce  open-redirect  other
+
+STATUS:
+  ?  = untested
+  >  = active / in progress
+  ✓  = confirmed finding (add to Findings page)
+  -  = tested, nothing found
+  x  = not applicable
+
+
+ENDPOINT MAP
+───────────────────────────────────
+  (Add rows freely. Auth = whether endpoint requires auth.)
+
+  Status   Method   Endpoint                                Auth   Params of Interest         Vuln Classes to Hit
+  ──────   ──────   ─────────────────────────────────────   ────   ────────────────────────   ───────────────────
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+  ?                                                                                            
+
+
+INTERESTING HEADERS / STACK CLUES
+───────────────────────────────────
+  (Paste response headers, error messages, or anything that reveals the stack)
+
+
+JS FILES / HIDDEN ENDPOINTS
+───────────────────────────────────
+  (Endpoints pulled from JS analysis, robots.txt, content discovery)
+
+
+SESSION / AUTH NOTES
+───────────────────────────────────
+  (Token format, cookie flags, auth flow quirks — quick notes only)
+
+
+────────────────────────────────────────────────────────────
+  DAILY LOG
+  One entry per session. Quick — what did you test,
+  what happened, what's next.
+────────────────────────────────────────────────────────────
+
+  DATE:
+  Tested:
+  Found:
+  Next:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+  DATE:
+  Tested:
+  Found:
+  Next:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+  DATE:
+  Tested:
+  Found:
+  Next:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄

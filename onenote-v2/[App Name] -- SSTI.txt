@@ -1,0 +1,47 @@
+════════════════════════════════════════════════════════════
+  SSTI
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Param(s)               Engine Suspected
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────
+  ?                                                                                 
+  ?                                                                                 
+
+
+ENGINE IDENTIFICATION
+───────────────────────────────────
+  Probe                           Result
+  {{7*7}}                         →
+  ${7*7}                          →
+  #{7*7}                          →
+  {{7*'7'}}                       →
+  <%= 7*7 %>                      →
+
+  Confirmed engine:
+  Evidence:
+
+
+WORKING PAYLOADS
+───────────────────────────────────
+  Engine:
+  Payload:
+  Result:
+
+
+RCE REACHED
+───────────────────────────────────
+  [ ] OS command execution confirmed
+  id / whoami output:
+  [ ] File read viable
+  [ ] Shell / beacon dropped
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.

@@ -1,0 +1,54 @@
+════════════════════════════════════════════════════════════
+  XXE
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Content-Type           Type
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────────────
+  ?                                                                                 
+  ?                                                                                 
+
+  Type: in-band · blind-OOB · XInclude · SVG upload · XLSX/DOCX upload
+
+
+WHAT TIPPED YOU OFF
+───────────────────────────────────
+  (XML accepted, verbose parser errors, file upload that processes XML internally)
+
+
+EXPLOITATION
+───────────────────────────────────
+  In-band file read:
+    Payload:
+      <?xml version="1.0"?>
+      <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+      <root><data>&xxe;</data></root>
+    Result:
+
+  SSRF via XXE:
+    Target URL:
+    Result:
+
+  Blind OOB:
+    Collaborator payload:
+    Callback received:    Yes / No
+
+  XInclude (no DOCTYPE control):
+    Result:
+
+
+CONFIRMED FILE READS
+───────────────────────────────────
+  Path                            Output
+  /etc/passwd
+  Other:
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.

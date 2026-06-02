@@ -1,0 +1,46 @@
+════════════════════════════════════════════════════════════
+  SCOPE & STACK
+  Fill this in at kickoff. Rarely touched after that.
+════════════════════════════════════════════════════════════
+
+CLIENT:
+ENGAGEMENT TYPE:    [ ] Web App   [ ] API   [ ] Internal   [ ] Red Team   [ ] Cloud   [ ] WiFi
+DATES:              Start:                    End:
+TESTER:
+
+
+IN SCOPE
+───────────────────────────────────
+  App / Target                    URL / IP Range              Notes
+  ___________________________     ______________________      ____________________
+  ___________________________     ______________________      ____________________
+  ___________________________     ______________________      ____________________
+
+
+OUT OF SCOPE
+───────────────────────────────────
+
+
+CREDS / ACCESS PROVIDED
+───────────────────────────────────
+  Account                         Role                        Password / Notes
+  ___________________________     ______________________      ____________________
+  ___________________________     ______________________      ____________________
+
+
+KNOWN TECH STACK (fill as discovered)
+───────────────────────────────────
+  App:
+    Framework:
+    Language / Runtime:
+    Auth mechanism:
+
+  Infrastructure:
+    Web server:
+    CDN / WAF / Load balancer:
+    Cloud provider:
+
+
+CONTACTS
+───────────────────────────────────
+  Name:                           Role:                       Contact:

@@ -1,0 +1,52 @@
+════════════════════════════════════════════════════════════
+  SSRF
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Param(s)               Type
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────────────
+  ?                                                                                 
+  ?                                                                                 
+
+  Type: full-response · blind · partial (error-based)
+
+
+OOB CONFIRMATION
+───────────────────────────────────
+  Collaborator / interactsh payload:
+  Callback received:    Yes / No
+  Protocol:             HTTP / DNS
+  Source IP:
+
+
+INTERNAL REACH
+───────────────────────────────────
+  Host / IP                       Port     Service          Result
+  169.254.169.254                 80       Cloud metadata
+  ____________________________    ____     ______________   ____________________
+
+  Cloud metadata:
+    [ ] AWS IAM creds retrieved:
+    [ ] GCP metadata reachable
+    [ ] Azure metadata reachable
+
+
+PROTOCOLS / BYPASSES THAT WORKED
+───────────────────────────────────
+  [ ] file:///etc/passwd
+  [ ] dict://
+  [ ] gopher://
+  [ ] Decimal IP
+  [ ] IPv6
+  [ ] Open redirect chain
+  [ ] Other:
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.

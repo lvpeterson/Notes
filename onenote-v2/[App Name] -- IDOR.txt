@@ -1,0 +1,53 @@
+════════════════════════════════════════════════════════════
+  IDOR / BROKEN ACCESS CONTROL
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Object Ref / Param     AC Type
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────────────────────
+  ?                                                                                 
+  ?                                                                                 
+
+  AC Type: IDOR-horizontal · IDOR-vertical · BOLA · BFLA · mass-assignment
+
+
+TEST ACCOUNTS
+───────────────────────────────────
+  Account                         Role              User ID
+  ______________________________  ________________  __________
+  ______________________________  ________________  __________
+  ______________________________  ________________  __________
+
+
+OBJECT REFERENCE PATTERN
+───────────────────────────────────
+  (Sequential int / GUID / username / hash — and where it's exposed)
+
+
+CONFIRMED BYPASSES
+───────────────────────────────────
+  Type:       [ ] Horizontal   [ ] Vertical   [ ] Mass assignment
+  Request:
+  Result:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+  Type:       [ ] Horizontal   [ ] Vertical   [ ] Mass assignment
+  Request:
+  Result:
+
+
+SCOPE OF EXPOSED DATA
+───────────────────────────────────
+  [ ] PII          [ ] Financial    [ ] Auth material    [ ] Files    [ ] Admin data
+
+
+IMPACT
+───────────────────────────────────
+  (Blast radius — how many records, read vs. modify/delete)
+
+
+→ Add to Findings page when confirmed.

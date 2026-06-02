@@ -1,0 +1,65 @@
+════════════════════════════════════════════════════════════
+  SQL INJECTION
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Param(s)               Type Suspected
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────────────────────
+  ?                                                                                 
+  ?                                                                                 
+  ?                                                                                 
+
+  Type: error-based · blind-boolean · blind-time · union · OOB · second-order · NoSQL
+
+
+WHAT TIPPED YOU OFF
+───────────────────────────────────
+  (Stack trace, timing delta, different response on quote, boolean difference — paste raw)
+
+
+DB FINGERPRINT
+───────────────────────────────────
+  Type:       MySQL / MSSQL / PostgreSQL / Oracle / SQLite / MongoDB / Unknown
+  Version:
+  Evidence:
+
+
+WORKING PAYLOADS
+───────────────────────────────────
+  Endpoint:
+  Param:
+  Payload:
+  Result:
+
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+  Endpoint:
+  Param:
+  Payload:
+  Result:
+
+
+WHAT YOU CAN REACH
+───────────────────────────────────
+  [ ] Schema / DB names
+  [ ] Table enumeration
+  [ ] Credential tables
+  [ ] File read
+  [ ] File write / webshell
+  [ ] OS command execution
+  [ ] Linked servers / lateral movement
+
+  Tooling used:
+    [ ] Manual (Burp Repeater)
+    [ ] sqlmap   Flags:
+    [ ] Other:
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.

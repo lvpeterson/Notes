@@ -1,0 +1,54 @@
+════════════════════════════════════════════════════════════
+  PATH TRAVERSAL / LFI
+  App:
+  Created because:
+════════════════════════════════════════════════════════════
+
+CANDIDATES
+───────────────────────────────────
+  Status   Method   Endpoint                                Param(s)               Type
+  ──────   ──────   ─────────────────────────────────────   ────────────────────   ──────────────────────────
+  ?                                                                                 
+  ?                                                                                 
+
+  Type: path-traversal · LFI · RFI · file-download · zip-slip
+
+
+TRAVERSAL BEHAVIOR
+───────────────────────────────────
+  Probe                                           Result
+  ../../../../etc/passwd                          →
+  ..%2F..%2F..%2Fetc%2Fpasswd                    →
+  ....//....//etc/passwd                          →
+  %252e%252e%252fetc%252fpasswd                   →
+
+  Base dir (inferred):
+  Depth needed:
+  Encoding bypass required:
+
+
+CONFIRMED FILE READS
+───────────────────────────────────
+  Path                            Output
+  /etc/passwd
+  /proc/self/environ
+  App config:
+  Log file:
+
+
+RCE PATH
+───────────────────────────────────
+  [ ] Log poisoning
+        Log location:
+        Injection point:
+        Execution confirmed:
+  [ ] PHP session include
+  [ ] Upload + include
+  [ ] PHP filter chain
+
+
+IMPACT
+───────────────────────────────────
+
+
+→ Add to Findings page when confirmed.
